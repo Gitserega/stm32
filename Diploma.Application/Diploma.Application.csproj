@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Diploma.Api\Diploma.Api.csproj" />
+      <ProjectReference Include="..\Diploma.Entity\Diploma.Entity.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Blazor-ApexCharts" Version="6.1.0" />
+      <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.14" />
+      <PackageReference Include="MudBlazor" Version="9.2.0" />
+      <PackageReference Include="PSC.Blazor.Components.Chartjs" Version="8.0.8" />
+    </ItemGroup>
+
+</Project>

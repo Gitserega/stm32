@@ -1,0 +1,29 @@
+﻿@using Diploma.Application.Components.Layout
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link rel="stylesheet" href="@Assets["app.css"]"/>
+    <link rel="stylesheet" href="@Assets["Diploma.Application.styles.css"]"/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+    <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
+
+    <ImportMap/>
+    <HeadOutlet/>
+    
+</head>
+
+<body>
+<Routes/>
+<LayoutView Layout="@typeof(MainLayout)"/>
+<script src="_framework/blazor.web.js"></script>
+<script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="_content/Blazor-ApexCharts/js/apexcharts.js"></script>
+
+</body>
+
+</html>

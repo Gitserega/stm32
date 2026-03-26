@@ -1,0 +1,12 @@
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\bin\Debug\net9.0\Diploma.Entity.deps.json
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\bin\Debug\net9.0\Diploma.Entity.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\bin\Debug\net9.0\Diploma.Entity.pdb
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.csproj.AssemblyReference.cache
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.AssemblyInfoInputs.cache
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.AssemblyInfo.cs
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.csproj.CoreCompileInputs.cache
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\refint\Diploma.Entity.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.pdb
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\ref\Diploma.Entity.dll
