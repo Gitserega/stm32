@@ -10,3 +10,4 @@ C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity
 C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\refint\Diploma.Entity.dll
 C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.pdb
 C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\ref\Diploma.Entity.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Entity\obj\Debug\net9.0\Diploma.Entity.sourcelink.json

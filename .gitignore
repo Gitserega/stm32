@@ -1,0 +1,21 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+*.log
+
+# Other
+*.DS_Store
+*.tmp
+*.swp
+
+# Project specific
+MauiApp1.slnLaunch.user
