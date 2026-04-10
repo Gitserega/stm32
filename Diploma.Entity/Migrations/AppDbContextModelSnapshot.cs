@@ -66,12 +66,43 @@ namespace Diploma.Entity.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MeasurementId");
+                    b.HasIndex("MeasurementId")
+                        .HasDatabaseName("ix_alerts_measurement_id");
 
                     b.HasIndex("TriggeredAt")
                         .HasDatabaseName("ix_alerts_triggered_at");
 
                     b.ToTable("alerts", (string)null);
+                });
+
+            modelBuilder.Entity("Diploma.Entity.Device", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("devices", (string)null);
                 });
 
             modelBuilder.Entity("Diploma.Entity.Measurement", b =>
@@ -86,6 +117,9 @@ namespace Diploma.Entity.Migrations
                     b.Property<bool>("BaselineReady")
                         .HasColumnType("boolean")
                         .HasColumnName("baseline_ready");
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("DeviceTimestamp")
                         .HasColumnType("bigint")
@@ -163,10 +197,29 @@ namespace Diploma.Entity.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeviceId");
+
                     b.HasIndex("ReceivedAt")
                         .HasDatabaseName("ix_measurements_received_at");
 
                     b.ToTable("measurements", (string)null);
+                });
+
+            modelBuilder.Entity("Diploma.Entity.Role", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles");
                 });
 
             modelBuilder.Entity("Diploma.Entity.ThresholdConfig", b =>
@@ -177,6 +230,10 @@ namespace Diploma.Entity.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("DeviceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("device_id");
 
                     b.Property<string>("Metric")
                         .IsRequired()
@@ -194,34 +251,37 @@ namespace Diploma.Entity.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Metric")
+                    b.HasIndex("DeviceId", "Metric")
                         .IsUnique()
-                        .HasDatabaseName("ix_thresholds_metric");
+                        .HasDatabaseName("ix_thresholds_device_metric");
 
                     b.ToTable("thresholds", (string)null);
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Metric = "crest",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Value = 4.0
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Metric = "bearing",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Value = 0.050000000000000003
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Metric = "gear",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Value = 0.050000000000000003
-                        });
+            modelBuilder.Entity("Diploma.Entity.User", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Login")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("RoleId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Diploma.Entity.Alert", b =>
@@ -237,7 +297,52 @@ namespace Diploma.Entity.Migrations
 
             modelBuilder.Entity("Diploma.Entity.Measurement", b =>
                 {
+                    b.HasOne("Diploma.Entity.Device", "Device")
+                        .WithMany("Measurements")
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+                });
+
+            modelBuilder.Entity("Diploma.Entity.ThresholdConfig", b =>
+                {
+                    b.HasOne("Diploma.Entity.Device", "Device")
+                        .WithMany("ThresholdConfigs")
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Device");
+                });
+
+            modelBuilder.Entity("Diploma.Entity.User", b =>
+                {
+                    b.HasOne("Diploma.Entity.Role", "Role")
+                        .WithMany("Users")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Diploma.Entity.Device", b =>
+                {
+                    b.Navigation("Measurements");
+
+                    b.Navigation("ThresholdConfigs");
+                });
+
+            modelBuilder.Entity("Diploma.Entity.Measurement", b =>
+                {
                     b.Navigation("Alerts");
+                });
+
+            modelBuilder.Entity("Diploma.Entity.Role", b =>
+                {
+                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

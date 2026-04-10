@@ -47,5 +47,9 @@ public class MeasurementConfiguration : IEntityTypeConfiguration<Measurement>
             .WithOne(a => a.Measurement)
             .HasForeignKey(a => a.MeasurementId)
             .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(m => m.Device)
+            .WithMany(d => d.Measurements)
+            .HasForeignKey(m => m.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

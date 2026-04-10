@@ -134,4 +134,15 @@ C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Newtonsoft.Json.d
 C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\System.Net.WebSockets.WebSocketProtocol.dll
 C:\Users\user\RiderProjects\STM32\Diploma.Api\obj\Debug\net9.0\Diploma.Api.sourcelink.json
 C:\Users\user\RiderProjects\STM32\Diploma.Api\obj\Debug\net9.0\swae.build.ex.cache
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Diploma.DTO.dll
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\Diploma.DTO.pdb
+C:\Users\user\RiderProjects\STM32\Diploma.Api\bin\Debug\net9.0\BCrypt.Net-Next.dll
 C:\Users\user\RiderProjects\STM32\Diploma.Api\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

@@ -16,6 +16,7 @@
       <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.14" />
       <PackageReference Include="MudBlazor" Version="9.2.0" />
       <PackageReference Include="PSC.Blazor.Components.Chartjs" Version="8.0.8" />
+      <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
     </ItemGroup>
 
 </Project>

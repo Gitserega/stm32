@@ -1,0 +1,111 @@
+﻿@page "/login"
+@using Diploma.Application.Services
+@using DTO.Auth
+@using MudBlazor
+
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="d-flex align-center" Style="min-height: 100vh;">
+    <MudCard Elevation="3" Class="pa-6">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5" Align="MudBlazor.Align.Center" Class="w-100">
+                <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
+                Вход в систему
+            </MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="email"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Email"
+                          InputType="InputType.Email"
+                          Class="mb-4"
+                          FullWidth="true" />
+            <MudTextField @bind-Value="password"
+                          Label="Пароль"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          InputType="InputType.Password"
+                          Class="mb-6"
+                          FullWidth="true" />
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+            }
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       FullWidth="true"
+                       Size="MudBlazor.Size.Large"
+                       OnClick="LoginAsync"
+                       Disabled="isLoading">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Войти
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    private async Task LoginAsync()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Заполните все поля";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var response = await ApiService.LoginAsync(email, password);
+            if (response != null)
+            {
+                // Сохраняем токен и данные пользователя
+                await TokenStorage.SaveTokenAsync(response.Token);
+                UserState.UserId = response.UserId;
+                UserState.FullName = response.Login;
+                UserState.Role = response.Role;
+
+                Snackbar.Add($"Добро пожаловать, {response.Login}!", Severity.Success);
+
+                // Редирект в зависимости от роли
+                if (UserState.IsAdmin)
+                    Navigation.NavigateTo("/alerts", replace: true, forceLoad: true);
+                else
+                    Navigation.NavigateTo("/", replace: true, forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "Неверный email или пароль";
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ошибка подключения к серверу";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

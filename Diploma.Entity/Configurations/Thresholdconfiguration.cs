@@ -8,20 +8,26 @@ public class ThresholdConfiguration : IEntityTypeConfiguration<ThresholdConfig>
     public void Configure(EntityTypeBuilder<ThresholdConfig> b)
     {
         b.ToTable("thresholds");
- 
+
         b.HasKey(t => t.Id);
-        b.Property(t => t.Id)       .HasColumnName("id").UseIdentityByDefaultColumn();
-        b.Property(t => t.Metric)   .HasColumnName("metric").HasMaxLength(32);
-        b.Property(t => t.Value)    .HasColumnName("value");
+        b.Property(t => t.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+        b.Property(t => t.Metric).HasColumnName("metric").HasMaxLength(32).IsRequired();
+        b.Property(t => t.Value).HasColumnName("value");
         b.Property(t => t.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
- 
-        b.HasIndex(t => t.Metric).IsUnique().HasDatabaseName("ix_thresholds_metric");
- 
-        /* Seed — начальные значения порогов */
-        b.HasData(
-            new ThresholdConfig { Id = 1, Metric = "crest",   Value = 4.0, UpdatedAt = new DateTime(2026,1,1,0,0,0,DateTimeKind.Utc) },
-            new ThresholdConfig { Id = 2, Metric = "bearing",  Value = 0.05, UpdatedAt = new DateTime(2026,1,1,0,0,0,DateTimeKind.Utc) },
-            new ThresholdConfig { Id = 3, Metric = "gear",     Value = 0.05, UpdatedAt = new DateTime(2026,1,1,0,0,0,DateTimeKind.Utc) }
-        );
+        b.Property(t => t.DeviceId).HasColumnName("device_id");
+
+        // Уникальность: одна метрика на устройство (не глобально)
+        b.HasIndex(t => new { t.DeviceId, t.Metric })
+            .IsUnique()
+            .HasDatabaseName("ix_thresholds_device_metric");
+
+        // FK на Device
+        b.HasOne(t => t.Device)
+            .WithMany(d => d.ThresholdConfigs)
+            .HasForeignKey(t => t.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Seed убран — пороги создаются при регистрации устройства,
+        // т.к. требуют DeviceId. Заполни через миграцию или AdminController.
     }
 }

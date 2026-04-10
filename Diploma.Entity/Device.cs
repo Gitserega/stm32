@@ -8,5 +8,5 @@ public class Device
     public bool IsActive { get; set; } = true;
     public List<Measurement> Measurements { get; set; }
     // public long ThresholdConfigId { get; set; }
-    public ThresholdConfig ThresholdConfig { get; set; }
+    public List<ThresholdConfig> ThresholdConfigs { get; set; }
 }

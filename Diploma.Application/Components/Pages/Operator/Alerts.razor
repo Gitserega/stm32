@@ -1,0 +1,108 @@
+@page "/alerts"
+@using Diploma.Application.Services
+@using Diploma.DTO
+@rendermode InteractiveServer
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+<RoleGuard AllowedRole="operator" />
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="From Date" @bind-Date="_fromDate" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="To Date" @bind-Date="_toDate" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="LoadAlerts">Load</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_alerts != null && _alerts.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Alerts</MudText>
+    
+            @if (_alerts != null && _alerts.Any())
+            {
+                <table class="mud-table mud-table-dense mud-table-hover">
+                    <thead class="mud-table-head">
+                        <tr>
+                            <th class="mud-table-cell">Time</th>
+                            <th class="mud-table-cell">Severity</th>
+                            <th class="mud-table-cell">Axis</th>
+                            <th class="mud-table-cell">Metric</th>
+                            <th class="mud-table-cell">Value</th>
+                            <th class="mud-table-cell">Threshold</th>
+                        </tr>
+                    </thead>
+                    <tbody class="mud-table-body">
+                        @foreach (var alert in _alerts)
+                        {
+                            <tr class="mud-table-row">
+                                <td class="mud-table-cell">@alert.TriggeredAt.ToLocalTime()</td>
+                                <td class="mud-table-cell">
+                                    <span class="mud-chip mud-chip-small @(alert.Severity == "Warning" ? "mud-chip-warning" : "mud-chip-error")">
+                                        @alert.Severity
+                                    </span>
+                                </td>
+                                <td class="mud-table-cell">@alert.Axis</td>
+                                <td class="mud-table-cell">@alert.Metric</td>
+                                <td class="mud-table-cell">@alert.Value.ToString("F3")</td>
+                                <td class="mud-table-cell">@alert.Threshold.ToString("F3")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info">No alerts found.</MudAlert>
+            }
+        </MudPaper>
+    }
+    else if (_alerts != null && !_alerts.Any())
+    {
+        <MudAlert Severity="Severity.Info">No alerts for selected period.</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private DateTime? _fromDate = DateTime.Today.AddDays(-7);
+    private DateTime? _toDate = DateTime.Today;
+    private List<DTO.AlertDto>? _alerts;
+    private bool _isLoading = false;
+    private string _errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAlerts();
+    }
+
+    private async Task LoadAlerts()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            _alerts = await ApiService.GetAlertsAsync(_fromDate, _toDate);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

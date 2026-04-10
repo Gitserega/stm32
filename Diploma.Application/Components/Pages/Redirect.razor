@@ -1,0 +1,28 @@
+﻿@page "/"
+@inject NavigationManager Navigation
+@using Diploma.Application.Services
+
+@code {
+    protected override void OnInitialized()
+    {
+        var token = TokenStorage.GetCachedToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            Navigation.NavigateTo("/login", replace: true);
+            return;
+        }
+
+        if (UserState.IsAdmin)
+        {
+            Navigation.NavigateTo("/users", replace: true);
+        }
+        else if (UserState.IsOperator)
+        {
+            Navigation.NavigateTo("/dashboard", replace: true);
+        }
+        else
+        {
+            Navigation.NavigateTo("/login", replace: true);
+        }
+    }
+}

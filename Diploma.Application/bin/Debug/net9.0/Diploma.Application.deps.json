@@ -13,10 +13,19 @@
           "Diploma.Entity": "1.0.0",
           "Microsoft.AspNetCore.SignalR.Client": "9.0.14",
           "MudBlazor": "9.2.0",
-          "PSC.Blazor.Components.Chartjs": "8.0.8"
+          "PSC.Blazor.Components.Chartjs": "8.0.8",
+          "System.IdentityModel.Tokens.Jwt": "8.17.0"
         },
         "runtime": {
           "Diploma.Application.dll": {}
+        }
+      },
+      "BCrypt.Net-Next/4.1.0": {
+        "runtime": {
+          "lib/netstandard2.1/BCrypt.Net-Next.dll": {
+            "assemblyVersion": "4.1.0.0",
+            "fileVersion": "4.1.0.0"
+          }
         }
       },
       "Blazor-ApexCharts/6.1.0": {
@@ -29,6 +38,17 @@
           "lib/net9.0/Blazor-ApexCharts.dll": {
             "assemblyVersion": "6.1.0.0",
             "fileVersion": "6.1.0.0"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Authentication.JwtBearer/9.0.14": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.0.1"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll": {
+            "assemblyVersion": "9.0.14.0",
+            "fileVersion": "9.0.1426.11909"
           }
         }
       },
@@ -442,6 +462,71 @@
           }
         }
       },
+      "Microsoft.IdentityModel.Abstractions/8.17.0": {
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.Abstractions.dll": {
+            "assemblyVersion": "8.17.0.0",
+            "fileVersion": "8.17.0.26082"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.JsonWebTokens/8.17.0": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Tokens": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.JsonWebTokens.dll": {
+            "assemblyVersion": "8.17.0.0",
+            "fileVersion": "8.17.0.26082"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Logging/8.17.0": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Abstractions": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.Logging.dll": {
+            "assemblyVersion": "8.17.0.0",
+            "fileVersion": "8.17.0.26082"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Protocols/8.0.1": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Tokens": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.Protocols.dll": {
+            "assemblyVersion": "8.0.1.0",
+            "fileVersion": "8.0.1.50722"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Protocols.OpenIdConnect/8.0.1": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols": "8.0.1",
+          "System.IdentityModel.Tokens.Jwt": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll": {
+            "assemblyVersion": "8.0.1.0",
+            "fileVersion": "8.0.1.50722"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Tokens/8.17.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.14",
+          "Microsoft.IdentityModel.Logging": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.IdentityModel.Tokens.dll": {
+            "assemblyVersion": "8.17.0.0",
+            "fileVersion": "8.17.0.26082"
+          }
+        }
+      },
       "Microsoft.JSInterop/9.0.2": {
         "runtime": {
           "lib/net9.0/Microsoft.JSInterop.dll": {
@@ -522,6 +607,18 @@
           }
         }
       },
+      "System.IdentityModel.Tokens.Jwt/8.17.0": {
+        "dependencies": {
+          "Microsoft.IdentityModel.JsonWebTokens": "8.17.0",
+          "Microsoft.IdentityModel.Tokens": "8.17.0"
+        },
+        "runtime": {
+          "lib/net9.0/System.IdentityModel.Tokens.Jwt.dll": {
+            "assemblyVersion": "8.17.0.0",
+            "fileVersion": "8.17.0.26082"
+          }
+        }
+      },
       "System.Net.ServerSentEvents/9.0.14": {
         "runtime": {
           "lib/net9.0/System.Net.ServerSentEvents.dll": {
@@ -540,8 +637,11 @@
       },
       "Diploma.Api/1.0.0": {
         "dependencies": {
+          "BCrypt.Net-Next": "4.1.0",
+          "Diploma.DTO": "1.0.0",
           "Diploma.Entity": "1.0.0",
           "MQTTnet": "5.1.0.1559",
+          "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.14",
           "Microsoft.AspNetCore.OpenApi": "9.0.10",
           "Microsoft.AspNetCore.SignalR": "1.2.9",
           "Microsoft.EntityFrameworkCore": "9.0.14",
@@ -549,6 +649,14 @@
         },
         "runtime": {
           "Diploma.Api.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Diploma.DTO/1.0.0": {
+        "runtime": {
+          "Diploma.DTO.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -574,12 +682,26 @@
       "serviceable": false,
       "sha512": ""
     },
+    "BCrypt.Net-Next/4.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-5YT3DKllmtkyW68PjURu/V1TOe4MKiByKwsRNVcfYE1S5KuFTeozdmKzyNzolKiQF391OXCaQtINvYT3j1ERzQ==",
+      "path": "bcrypt.net-next/4.1.0",
+      "hashPath": "bcrypt.net-next.4.1.0.nupkg.sha512"
+    },
     "Blazor-ApexCharts/6.1.0": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-H2mkr7HEVk+BoQKcyoQtqq3ifoo/VxS7I8B35wO9tpiarGMdnAsL9pwcQBU4E/YnADNF+zOKTIaRxhd93Qr9HA==",
       "path": "blazor-apexcharts/6.1.0",
       "hashPath": "blazor-apexcharts.6.1.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Authentication.JwtBearer/9.0.14": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CHG/cxMJa3Peh5PYqJPLPHdwaGjXcoCmD1mUjo4xH2HilA6K0DKoVEr5ollVCqkQDGGutEfkzab10r8+pSeuMQ==",
+      "path": "microsoft.aspnetcore.authentication.jwtbearer/9.0.14",
+      "hashPath": "microsoft.aspnetcore.authentication.jwtbearer.9.0.14.nupkg.sha512"
     },
     "Microsoft.AspNetCore.Authorization/9.0.2": {
       "type": "package",
@@ -833,6 +955,48 @@
       "path": "microsoft.extensions.primitives/9.0.14",
       "hashPath": "microsoft.extensions.primitives.9.0.14.nupkg.sha512"
     },
+    "Microsoft.IdentityModel.Abstractions/8.17.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-6NrxQGcZg6IunkN8K2F0UVMavNpfCjbjjjON7PYcL8FwI8aULKUreiHsRX/yaA8j3XsTJnQKUYpoQk5gBjULZw==",
+      "path": "microsoft.identitymodel.abstractions/8.17.0",
+      "hashPath": "microsoft.identitymodel.abstractions.8.17.0.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.JsonWebTokens/8.17.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-JbFZ3OVwtvqcqgBL0cIkhRYbIP7u9GIUYLOgbNqLWtBtZY8tGDpdGyXMzUVX0gVHq1ovuHsKZrkVv+ziHEnBHw==",
+      "path": "microsoft.identitymodel.jsonwebtokens/8.17.0",
+      "hashPath": "microsoft.identitymodel.jsonwebtokens.8.17.0.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Logging/8.17.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-w1vjfri0BWqW7RkSZY3ZsqekNfIJJg5BQSFs2j+a+pCXOVrkezmJcn74pT3djwjXJh71577C6wJQgNc2UPz30w==",
+      "path": "microsoft.identitymodel.logging/8.17.0",
+      "hashPath": "microsoft.identitymodel.logging.8.17.0.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Protocols/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-uA2vpKqU3I2mBBEaeJAWPTjT9v1TZrGWKdgK6G5qJd03CLx83kdiqO9cmiK8/n1erkHzFBwU/RphP83aAe3i3g==",
+      "path": "microsoft.identitymodel.protocols/8.0.1",
+      "hashPath": "microsoft.identitymodel.protocols.8.0.1.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Protocols.OpenIdConnect/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-AQDbfpL+yzuuGhO/mQhKNsp44pm5Jv8/BI4KiFXR7beVGZoSH35zMV3PrmcfvSTsyI6qrcR898NzUauD6SRigg==",
+      "path": "microsoft.identitymodel.protocols.openidconnect/8.0.1",
+      "hashPath": "microsoft.identitymodel.protocols.openidconnect.8.0.1.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Tokens/8.17.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-teaW35URIV2x78Tzk+dVJiC4M62/9mQoSEoDjDGoEZmcQa3H2rE+XQpm9Tmdo9KK1Lcrnve4zoyLavl69kCFGg==",
+      "path": "microsoft.identitymodel.tokens/8.17.0",
+      "hashPath": "microsoft.identitymodel.tokens.8.17.0.nupkg.sha512"
+    },
     "Microsoft.JSInterop/9.0.2": {
       "type": "package",
       "serviceable": true,
@@ -889,6 +1053,13 @@
       "path": "psc.blazor.components.chartjs/8.0.8",
       "hashPath": "psc.blazor.components.chartjs.8.0.8.nupkg.sha512"
     },
+    "System.IdentityModel.Tokens.Jwt/8.17.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-nKikRYheDeSaXA3wGr2otwaiRFygBa25m+hc7MEomZVIEWZvKVqd8wgP9yn+8QpLRGgw//dUs4LErGx9gtVmAA==",
+      "path": "system.identitymodel.tokens.jwt/8.17.0",
+      "hashPath": "system.identitymodel.tokens.jwt.8.17.0.nupkg.sha512"
+    },
     "System.Net.ServerSentEvents/9.0.14": {
       "type": "package",
       "serviceable": true,
@@ -904,6 +1075,11 @@
       "hashPath": "system.net.websockets.websocketprotocol.5.1.0.nupkg.sha512"
     },
     "Diploma.Api/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Diploma.DTO/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

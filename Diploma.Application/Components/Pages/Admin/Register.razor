@@ -1,0 +1,120 @@
+﻿@page "/register"
+@using Diploma.Application.Services
+@using Diploma.DTO.User
+@rendermode InteractiveServer
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+<RoleGuard AllowedRole="admin" />
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudCard>
+        <MudCardHeader>
+            <MudText Typo="Typo.h5">Create New User</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_newUser.Login"
+                                  Label="Login"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_newUser.Password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Password"
+                                  FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect T="bool" Label="Role" @bind-Value="_newUser.IsAdmin"
+                               Variant="Variant.Outlined" FullWidth="true">
+                        <MudSelectItem Value="false">Operator</MudSelectItem>
+                        <MudSelectItem Value="true">Admin</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary"
+                               OnClick="CreateUser" Disabled="@_isLoading" FullWidth="true">
+                        @if (_isLoading)
+                        {
+                            <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Add User
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrEmpty(_statusMessage))
+            {
+                <MudAlert Severity="@_statusSeverity" Class="mt-4" @bind-IsVisible="_showStatus">
+                    @_statusMessage
+                </MudAlert>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private CreateUserRequest _newUser = new();
+    private bool _isLoading = false;
+    private string _statusMessage = "";
+    private Severity _statusSeverity = Severity.Info;
+    private bool _showStatus = false;
+    private CancellationTokenSource? _cts;
+
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(_newUser.Login) || string.IsNullOrWhiteSpace(_newUser.Password))
+        {
+            ShowStatus("Login and password are required", Severity.Error);
+            return;
+        }
+
+        _isLoading = true;
+        _showStatus = false;
+        StateHasChanged();
+
+        try
+        {
+            var success = await ApiService.CreateUserAsync(_newUser);
+            if (success)
+            {
+                ShowStatus($"User '{_newUser.Login}' created successfully!", Severity.Success);
+                _newUser = new CreateUserRequest(); // очистить форму
+            }
+            else
+            {
+                ShowStatus("Failed to create user. Maybe login already exists.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void ShowStatus(string message, Severity severity)
+    {
+        // Отменить предыдущий таймер, если был
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _statusMessage = message;
+        _statusSeverity = severity;
+        _showStatus = true;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(4000, _cts.Token);
+            _showStatus = false;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { /* игнорируем */ }
+    }
+}

@@ -4,7 +4,9 @@ namespace Diploma.Entity;
 public class ThresholdConfig
 {
     public int    Id        { get; set; }
-    public string Metric    { get; set; } = string.Empty;  /* "crest" | "bearing" | "gear" */
+    public string Metric    { get; set; } = string.Empty;  
     public double Value     { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public long DeviceId { get; set; }
+    public Device Device { get; set; }
 }

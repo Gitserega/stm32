@@ -1,0 +1,24 @@
+﻿@page "/forbidden"
+@using Diploma.Application.Services
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-column align-center justify-center" Style="min-height:80vh">
+    <MudIcon Icon="@Icons.Material.Filled.Block" Style="font-size:80px; color:#e53935;" Class="mb-4" />
+    <MudText Typo="Typo.h4" Align="MudBlazor.Align.Center" Class="mb-2">Доступ запрещён</MudText>
+    <MudText Typo="Typo.body1" Align="MudBlazor.Align.Center" Color="MudBlazor.Color.Secondary" Class="mb-6">
+        У вас нет прав для просмотра этой страницы
+    </MudText>
+    <MudButton Variant="Variant.Filled"
+               Color="MudBlazor.Color.Primary"
+               StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="GoBack">
+        Назад
+    </MudButton>
+</MudContainer>
+@code{
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}

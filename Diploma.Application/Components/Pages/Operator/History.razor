@@ -1,0 +1,166 @@
+@page "/history"
+@using ApexCharts
+@using Diploma.Application.Services
+@using Diploma.DTO.History
+@rendermode InteractiveServer
+@inject IApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+<RoleGuard AllowedRole="operator" />
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" Label="Parameter" @bind-Value="_selectedParameter">
+                    @foreach (var param in _parameters)
+                    {
+                        <MudSelectItem Value="@param.Value">@param.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="Start Date" @bind-Date="_startDate" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="End Date" @bind-Date="_endDate" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="LoadData">Load</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_errorMessage</MudAlert>
+    }
+
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h6">@_selectedParameter History (@_startDate?.ToShortDateString() - @_endDate?.ToShortDateString())</MudText>
+        <ApexChart TItem="HistoryDataPoint" Height="400" Options="_chartOptions" @ref="_chart">
+            <ApexPointSeries TItem="HistoryDataPoint" Items="_dataPoints" Name="X"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(p => p.Timestamp.ToLocalTime().ToString("HH:mm:ss"))"
+                             YValue="@(p => (decimal)p.X)" />
+            <ApexPointSeries TItem="HistoryDataPoint" Items="_dataPoints" Name="Y"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(p => p.Timestamp.ToLocalTime().ToString("HH:mm:ss"))"
+                             YValue="@(p => (decimal)p.Y)" />
+            <ApexPointSeries TItem="HistoryDataPoint" Items="_dataPoints" Name="Z"
+                             SeriesType="SeriesType.Line"
+                             XValue="@(p => p.Timestamp.ToLocalTime().ToString("HH:mm:ss"))"
+                             YValue="@(p => (decimal)p.Z)" />
+        </ApexChart>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private readonly List<(string Value, string Name)> _parameters = new()
+    {
+        ("Rms", "RMS"),
+        ("Crest", "Crest Factor"),
+        ("Bear", "Bearing"),
+        ("Gear", "Gear")
+    };
+    private string _selectedParameter = "Rms";
+    private DateTime? _startDate = DateTime.Today.AddDays(-7);
+    private DateTime? _endDate = DateTime.Today;
+    private List<HistoryDataPoint> _dataPoints = new();
+    private bool _isLoading = false;
+    private string _errorMessage = "";
+
+    private ApexChart<HistoryDataPoint>? _chart;
+    private ApexChartOptions<HistoryDataPoint> _chartOptions = new()
+    {
+        Chart = new Chart { Background = "transparent", Toolbar = new Toolbar { Show = false }, Zoom = new Zoom { Enabled = true } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 2, 2, 2 } },
+        Markers = new Markers { Size = 0 },
+        Xaxis = new XAxis { TickAmount = 10, Title = new AxisTitle { Text = "Time" } },
+        Yaxis = new List<YAxis> { new() { Min = 0, Title = new AxisTitle { Text = "Value" } } },
+        Tooltip = new Tooltip { Theme = Mode.Dark }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Ждём, пока ApexChart создастся и ссылка станет доступной
+            while (_chart == null)
+            {
+                await Task.Delay(50);
+            }
+            await JSRuntime.InvokeVoidAsync("console.log", "Chart reference acquired");
+        }
+    }
+
+    private async Task LoadData()
+    {
+        await JSRuntime.InvokeVoidAsync("console.log", "LoadData started");
+
+        if (_startDate == null || _endDate == null)
+        {
+            _errorMessage = "Select start and end dates";
+            StateHasChanged();
+            return;
+        }
+        if (_endDate < _startDate)
+        {
+            _errorMessage = "End date must be after start date";
+            StateHasChanged();
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            var end = _endDate.Value.Date.AddDays(1).AddTicks(-1);
+            var start = _startDate.Value.Date;
+            await JSRuntime.InvokeVoidAsync("console.log", $"Calling API with start={start}, end={end}, param={_selectedParameter}");
+
+            var newData = await ApiService.GetHistoryDataAsync(start, end, _selectedParameter);
+            await JSRuntime.InvokeVoidAsync("console.log", $"Received {newData?.Count ?? 0} points");
+
+            _dataPoints.Clear();
+            if (newData != null && newData.Any())
+            {
+                _dataPoints.AddRange(newData);
+            }
+            else
+            {
+                _errorMessage = "No data for selected period.";
+            }
+
+            // Принудительно обновляем UI
+            StateHasChanged();
+
+            // Обновляем график, если ссылка получена
+            if (_chart != null)
+            {
+                await _chart.UpdateSeriesAsync(true);
+                await JSRuntime.InvokeVoidAsync("console.log", "Chart updated");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("console.log", "Chart reference is null");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", $"Error: {ex.Message}");
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

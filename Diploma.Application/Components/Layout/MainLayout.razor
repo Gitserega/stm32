@@ -1,26 +1,142 @@
-﻿@inherits LayoutComponentBase
+﻿@using Diploma.Application.Services
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-<MudThemeProvider/>
-<MudDialogProvider/>
-<MudSnackbarProvider/>
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+@if (!IsLoginPage)
+{
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            
+            @if (!string.IsNullOrEmpty(UserState.FullName))
+            {
+                <MudSpacer />
+                <MudChip T="string" Icon="@Icons.Material.Filled.Person"
+                         Style="background-color:rgba(255,255,255,0.15); color:white;"
+                         Size="MudBlazor.Size.Small" Class="mr-2">
+                    @UserState.FullName
+                </MudChip>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                               Color="MudBlazor.Color.Inherit"
+                               Title="Выйти"
+                               OnClick="Logout" />
+            }
+            else
+            {
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="MudBlazor.Color.Inherit" Edge="Edge.End" />
+            }
+        </MudAppBar>
 
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h5" Class="ml-3">Vibration monitor</MudText>
-        <MudSpacer />
-    </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <MyNavMenu/>
-    </MudDrawer>
-    <MudMainContent>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h5" Class="mt-1">Vibration Monitor</MudText>
+            </MudDrawerHeader>
+            @if (!string.IsNullOrEmpty(UserState.FullName))
+            {
+                @if (UserState.IsOperator)
+                {
+                    <OperatorNavMenu />
+                }
+                @if (UserState.IsAdmin)
+                {
+                    <AdminNavMenu />
+                }
+            }
+        </MudDrawer>
+
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
+else
+{
+    // На странице логина рендерим только Body без шапки и меню
+    <div class="login-container">
         @Body
-    </MudMainContent>
-</MudLayout>
+    </div>
+}
+
 @code {
     bool _drawerOpen = true;
+    private bool _tokenStorageInitialized = false;
+    private bool IsLoginPage => Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
 
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_tokenStorageInitialized)
+        {
+            await TokenStorage.InitializeAsync(JSRuntime);
+            _tokenStorageInitialized = true;
+        }
+
+        if (string.IsNullOrEmpty(UserState.FullName))
+        {
+            RestoreUserStateFromToken();
+        }
+
+        await CheckAuthAsync();
+        StateHasChanged();
+    }
+
+    private void RestoreUserStateFromToken()
+    {
+        var token = TokenStorage.GetCachedToken();
+        if (string.IsNullOrEmpty(token)) return;
+
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+
+            UserState.FullName = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? "";
+            UserState.Role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? "";
+
+            var userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdClaim, out var id))
+                UserState.UserId = id;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"JWT parse error: {ex.Message}");
+        }
+    }
+
+    private async Task CheckAuthAsync()
+    {
+        var token = await TokenStorage.GetTokenAsync();
+        if (string.IsNullOrEmpty(token) && !IsLoginPage)
+        {
+            Navigation.NavigateTo("/login", replace: true);
+            return;
+        }
+        if (!string.IsNullOrEmpty(token) && IsLoginPage)
+        {
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+    }
+
+    private async Task Logout()
+    {
+        await TokenStorage.RemoveTokenAsync();
+        UserState.Clear();
+        StateHasChanged();
+        Navigation.NavigateTo("/login", replace: true);
     }
 }

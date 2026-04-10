@@ -1,0 +1,66 @@
+﻿@using Diploma.DTO.Config
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Редактирование порогов: @DeviceName</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_rms" Label="RMS" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_crest" Label="Crest Factor" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_bearing" Label="Bearing" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_gear" Label="Gear" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Отмена</MudButton>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Save">Сохранить</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public long DeviceId { get; set; }
+    [Parameter] public string DeviceName { get; set; } = "";
+    [Parameter] public double? CurrentRms { get; set; }
+    [Parameter] public double? CurrentCrest { get; set; }
+    [Parameter] public double? CurrentBearing { get; set; }
+    [Parameter] public double? CurrentGear { get; set; }
+
+    private double? _rms;
+    private double? _crest;
+    private double? _bearing;
+    private double? _gear;
+
+    protected override void OnInitialized()
+    {
+        _rms = CurrentRms;
+        _crest = CurrentCrest;
+        _bearing = CurrentBearing;
+        _gear = CurrentGear;
+    }
+
+    private void Save()
+    {
+        var request = new UpdateThresholdsRequest
+        {
+            DeviceId = DeviceId,
+            Rms = _rms,
+            Crest = _crest,
+            Bearing = _bearing,
+            Gear = _gear
+        };
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

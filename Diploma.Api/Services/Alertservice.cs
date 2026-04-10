@@ -7,86 +7,77 @@ namespace Diploma.Api.Services;
 public class AlertService
 {
     private readonly AppDbContext _db;
- 
-    public AlertService(AppDbContext db)
-    {
-        _db = db;
-    }
- 
-    /* Проверяет признаки против порогов из БД.
-     * Возвращает список созданных алертов (уже сохранённых). */
+
+    public AlertService(AppDbContext db) => _db = db;
+
+    /// <summary>
+    /// Проверяет признаки против порогов из БД для конкретного устройства.
+    /// Возвращает список созданных алертов (уже сохранённых).
+    /// </summary>
     public async Task<List<Alert>> CheckAndSaveAsync(
         Measurement measurement,
         MqttPayload payload,
         CancellationToken ct = default)
     {
-        /* Загружаем пороги один раз — кешируем в словарь */
+        // Загружаем пороги для конкретного устройства
         var thresholds = await _db.Thresholds
             .AsNoTracking()
+            .Where(t => t.DeviceId == measurement.DeviceId)
             .ToDictionaryAsync(t => t.Metric, t => t.Value, ct);
- 
+
+        // Если порогов для устройства нет — используем дефолтные значения
+        double crestThr = thresholds.GetValueOrDefault("crest", 4.0);
+        double bearingThr = thresholds.GetValueOrDefault("bearing", 0.05);
+        double gearThr = thresholds.GetValueOrDefault("gear", 0.05);
+
         var alerts = new List<Alert>();
- 
-        double crestThreshold   = thresholds.GetValueOrDefault("crest",   4.0);
-        double bearingThreshold = thresholds.GetValueOrDefault("bearing", 0.05);
-        double gearThreshold    = thresholds.GetValueOrDefault("gear",    0.05);
- 
-        /* Проверяем каждую ось */
+
         var axes = new[]
         {
             (Axis: AlertAxis.Z, Data: payload.z),
             (Axis: AlertAxis.X, Data: payload.x),
             (Axis: AlertAxis.Y, Data: payload.y),
         };
- 
+
         foreach (var (axis, data) in axes)
         {
-            /* Crest factor */
-            if (data.crest > crestThreshold)
-                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Crest,
-                    data.crest, crestThreshold));
- 
-            /* Bearing energy */
-            if (data.bear > bearingThreshold)
-                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Bearing,
-                    data.bear, bearingThreshold));
- 
-            /* Gear energy */
-            if (data.gear > gearThreshold)
-                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Gear,
-                    data.gear, gearThreshold));
+            if (data.crest > crestThr)
+                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Crest, data.crest, crestThr));
+
+            if (data.bear > bearingThr)
+                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Bearing, data.bear, bearingThr));
+
+            if (data.gear > gearThr)
+                alerts.Add(MakeAlert(measurement.Id, axis, AlertMetric.Gear, data.gear, gearThr));
         }
- 
+
         if (alerts.Count > 0)
         {
             _db.Alerts.AddRange(alerts);
             await _db.SaveChangesAsync(ct);
         }
- 
+
         return alerts;
     }
- 
+
     private static Alert MakeAlert(
-        long measurementId,
-        AlertAxis axis,
-        AlertMetric metric,
-        double value,
-        double threshold)
+        long measurementId, AlertAxis axis, AlertMetric metric,
+        double value, double threshold)
     {
-        /* Severity: Critical если значение > 2× порога, иначе Warning */
         var severity = value > threshold * 2.0
             ? AlertSeverity.Critical
             : AlertSeverity.Warning;
- 
+
         return new Alert
         {
-            TriggeredAt   = DateTime.UtcNow,
+            TriggeredAt = DateTime.UtcNow,
             MeasurementId = measurementId,
-            Axis          = axis,
-            Metric        = metric,
-            Severity      = severity,
-            Value         = value,
-            Threshold     = threshold
+            // DeviceId убран из Alert — берётся через Measurement.DeviceId при необходимости
+            Axis = axis,
+            Metric = metric,
+            Severity = severity,
+            Value = value,
+            Threshold = threshold
         };
     }
 }

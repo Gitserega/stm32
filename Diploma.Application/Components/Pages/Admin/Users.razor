@@ -1,0 +1,206 @@
+﻿@page "/users"
+@using Diploma.Application.Services
+@using Diploma.DTO.User
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@inject IApiService ApiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@implements IDisposable
+<RoleGuard AllowedRole="admin"/>
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h5" Class="mb-4">Manage Users</MudText>
+
+        @if (_isLoading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudTable Items="@_users" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <ToolBarContent>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadUsers" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Login</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Login</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="MudBlazor.Size.Small"
+                                 Color="@(context.Role == "Admin" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)">
+                            @context.Role
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Info" OnClick="() => EditUser(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="() => DeleteUser(context)" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _disposed = false;
+    private List<UserDto> _users = new();
+    private bool _isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+    }
+
+    private async Task LoadUsers()
+    {
+        if (_disposed) return;
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var users = await ApiService.GetUsersAsync();
+            if (_disposed) return;
+            if (users != null) _users = users;
+            else ShowSnackbar("Failed to load users", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            if (_disposed) return;
+            ShowSnackbar(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    
+
+    private async Task EditUser(UserDto user)
+    {
+        var parameters = new DialogParameters
+        {
+            { "UserId", user.Id },
+            { "CurrentLogin", user.Login },
+            { "IsAdmin", user.Role == "Admin" }
+        };
+        var dialog = await DialogService.ShowAsync<EditUserDialog>("Edit User", parameters);
+        var result = await dialog.Result;
+        if (_disposed) return;
+        if (result.Canceled || result.Data is not UpdateUserRequest request) return;
+
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var success = await ApiService.UpdateUserAsync(user.Id, request);
+            if (_disposed) return;
+            if (success)
+            {
+                // Обновляем локальные данные без перезагрузки всего списка
+                var index = _users.FindIndex(u => u.Id == user.Id);
+                if (index >= 0)
+                {
+                    if (!string.IsNullOrWhiteSpace(request.Login))
+                        _users[index].Login = request.Login;
+                    if (request.IsAdmin.HasValue)
+                        _users[index].Role = request.IsAdmin.Value ? "Admin" : "Operator";
+                }
+                ShowSnackbar("User updated", Severity.Success);
+                StateHasChanged();
+            }
+            else
+            {
+                ShowSnackbar("Update failed (login may be taken)", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_disposed) return;
+            ShowSnackbar(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task DeleteUser(UserDto user)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"Delete user '{user.Login}'? This action cannot be undone." },
+            { "ButtonText", "Delete" },
+            { "Color", MudBlazor.Color.Error }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Confirm Delete", parameters);
+        var result = await dialog.Result;
+        if (_disposed) return;
+        if (result.Canceled) return;
+
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var success = await ApiService.DeleteUserAsync(user.Id);
+            if (_disposed) return;
+            if (success)
+            {
+                _users.RemoveAll(u => u.Id == user.Id);
+                ShowSnackbar($"User '{user.Login}' deleted", Severity.Success);
+                StateHasChanged();
+            }
+            else
+            {
+                ShowSnackbar("Delete failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_disposed) return;
+            ShowSnackbar(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                _isLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ShowSnackbar(string message, Severity severity)
+    {
+        try
+        {
+            Snackbar.Add(message, severity);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Компонент уже уничтожен, игнорируем
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("circuit has disconnected"))
+        {
+            // Игнорируем ошибку разорванного соединения
+        }
+    }
+}

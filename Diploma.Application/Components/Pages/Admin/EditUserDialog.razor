@@ -1,0 +1,58 @@
+﻿@using MudBlazor
+@using Diploma.DTO.User
+@inject IDialogService DialogService
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Edit User</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_login" Label="Login" Variant="Variant.Outlined" FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_password" Label="New Password (optional)" Variant="Variant.Outlined" InputType="InputType.Password" FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudRadioGroup T="bool" @bind-SelectedValue="_isAdmin">
+                    <MudRadio Value="@false">Operator</MudRadio>
+                    <MudRadio Value="@true">Admin</MudRadio>
+                </MudRadioGroup>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string CurrentLogin { get; set; } = "";
+    [Parameter] public bool IsAdmin { get; set; }
+    [Parameter] public long UserId  { get; set; }
+
+    private string _login = "";
+    private string _password = "";
+    private bool _isAdmin;
+
+    protected override void OnInitialized()
+    {
+        _login = CurrentLogin;
+        _isAdmin = IsAdmin;
+    }
+
+    private void Save()
+    {
+        var request = new UpdateUserRequest
+        {
+            Login = (_login != CurrentLogin) ? _login : null,
+            Password = string.IsNullOrWhiteSpace(_password) ? null : _password,
+            IsAdmin = (_isAdmin != IsAdmin) ? _isAdmin : (bool?)null
+        };
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

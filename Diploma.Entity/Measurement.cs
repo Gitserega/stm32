@@ -37,4 +37,6 @@ public class Measurement
  
     /* Навигационное свойство */
     public List<Alert> Alerts { get; set; } = new List<Alert>();
+    public long DeviceId { get; set; }
+    public Device Device { get; set; }
 }

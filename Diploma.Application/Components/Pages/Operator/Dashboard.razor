@@ -1,0 +1,235 @@
+@page "/dashboard"
+@using ApexCharts
+@using Diploma.Application.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Diploma.Api.Models
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject NavigationManager Navigation
+
+<RoleGuard AllowedRole="operator" />
+<div class="status-bar">
+    <span class="status-dot @(_statusText == "Online" ? "online" : "offline")"></span>
+    <strong>@_statusText</strong>
+    @if (_lastDto != null)
+    {
+        <span class="packet-info"> | Last packet #@_lastDto.PacketNumber</span>
+    }
+</div>
+
+<MudGrid Spacing="2">
+
+    <!-- RMS -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">RMS</MudText>
+            <ApexChart TItem="ChartPoint" Height="220" Options="_rmsOptions" @ref="_rmsChart">
+                <ApexPointSeries TItem="ChartPoint" Items="_rmsSeriesX" Name="X"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_rmsSeriesY" Name="Y"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_rmsSeriesZ" Name="Z"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Crest -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Crest Factor</MudText>
+            <ApexChart TItem="ChartPoint" Height="220" Options="_crestOptions" @ref="_crestChart">
+                <ApexPointSeries TItem="ChartPoint" Items="_crestSeriesX" Name="X"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_crestSeriesY" Name="Y"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_crestSeriesZ" Name="Z"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Bearing -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Bearing</MudText>
+            <ApexChart TItem="ChartPoint" Height="220" Options="_bearingOptions" @ref="_bearChart">
+                <ApexPointSeries TItem="ChartPoint" Items="_bearSeriesX" Name="X"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_bearSeriesY" Name="Y"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_bearSeriesZ" Name="Z"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Gear -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Gear</MudText>
+            <ApexChart TItem="ChartPoint" Height="220" Options="_gearOptions" @ref="_gearChart">
+                <ApexPointSeries TItem="ChartPoint" Items="_gearSeriesX" Name="X"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_gearSeriesY" Name="Y"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+                <ApexPointSeries TItem="ChartPoint" Items="_gearSeriesZ" Name="Z"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(p => p.Label)" YValue="@(p => (decimal)p.Value)" />
+            </ApexChart>
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+    record ChartPoint(int Idx, string Label, double Value);
+
+    HubConnection? _hub;
+    VibrationDto? _lastDto;
+    string _statusText = "Connecting...";
+
+    const int MaxPoints = 60;
+    int _pointIdx = 0;
+
+    List<ChartPoint> _rmsSeriesX = new();
+    List<ChartPoint> _rmsSeriesY = new();
+    List<ChartPoint> _rmsSeriesZ = new();
+    List<ChartPoint> _crestSeriesX = new();
+    List<ChartPoint> _crestSeriesY = new();
+    List<ChartPoint> _crestSeriesZ = new();
+    List<ChartPoint> _bearSeriesX = new();
+    List<ChartPoint> _bearSeriesY = new();
+    List<ChartPoint> _bearSeriesZ = new();
+    List<ChartPoint> _gearSeriesX = new();
+    List<ChartPoint> _gearSeriesY = new();
+    List<ChartPoint> _gearSeriesZ = new();
+
+    ApexChart<ChartPoint>? _rmsChart;
+    ApexChart<ChartPoint>? _crestChart;
+    ApexChart<ChartPoint>? _bearChart;
+    ApexChart<ChartPoint>? _gearChart;
+
+    ApexChartOptions<ChartPoint> _rmsOptions = new();
+    ApexChartOptions<ChartPoint> _crestOptions = new();
+    ApexChartOptions<ChartPoint> _bearingOptions = new();
+    ApexChartOptions<ChartPoint> _gearOptions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rmsOptions = BuildLineOptions();
+        _crestOptions = BuildLineOptions();
+        _bearingOptions = BuildLineOptions();
+        _gearOptions = BuildLineOptions();
+
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var token = await TokenStorage.GetTokenAsync();
+        if (string.IsNullOrEmpty(token))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        if (!firstRender) return;
+
+
+        await ConnectHub();
+    }
+
+    async Task ConnectHub()
+    {
+
+        // ✅ ИСПРАВЛЕНО: токен передаётся через фабрику, не через строковый литерал
+        _hub = new HubConnectionBuilder()
+            .WithUrl("http://localhost:5165/hubs/vibration")
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hub.On<VibrationDto>("ReceiveMeasurement", OnMeasurement);
+
+        _hub.Reconnected += _ => { _statusText = "Online"; return InvokeAsync(StateHasChanged); };
+        _hub.Closed += _ => { _statusText = "Disconnected"; return InvokeAsync(StateHasChanged); };
+
+        try
+        {
+            await _hub.StartAsync();
+            _statusText = "Online";
+        }
+        catch
+        {
+            _statusText = "Connection failed";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async void OnMeasurement(VibrationDto dto)
+    {
+        _lastDto = dto;
+        var label = dto.ReceivedAt.ToLocalTime().ToString("HH:mm:ss");
+        var idx = _pointIdx++;
+
+        AddPoint(_rmsSeriesX, idx, label, dto.X.Rms);
+        AddPoint(_rmsSeriesY, idx, label, dto.Y.Rms);
+        AddPoint(_rmsSeriesZ, idx, label, dto.Z.Rms);
+        AddPoint(_crestSeriesX, idx, label, dto.X.Crest);
+        AddPoint(_crestSeriesY, idx, label, dto.Y.Crest);
+        AddPoint(_crestSeriesZ, idx, label, dto.Z.Crest);
+        AddPoint(_bearSeriesX, idx, label, dto.X.Bear);
+        AddPoint(_bearSeriesY, idx, label, dto.Y.Bear);
+        AddPoint(_bearSeriesZ, idx, label, dto.Z.Bear);
+        AddPoint(_gearSeriesX, idx, label, dto.X.Gear);
+        AddPoint(_gearSeriesY, idx, label, dto.Y.Gear);
+        AddPoint(_gearSeriesZ, idx, label, dto.Z.Gear);
+
+        await InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            if (_rmsChart != null) await _rmsChart.UpdateSeriesAsync(false);
+            if (_crestChart != null) await _crestChart.UpdateSeriesAsync(false);
+            if (_bearChart != null) await _bearChart.UpdateSeriesAsync(false);
+            if (_gearChart != null) await _gearChart.UpdateSeriesAsync(false);
+        });
+    }
+
+    void AddPoint(List<ChartPoint> series, int idx, string label, double value)
+    {
+        series.Add(new ChartPoint(idx, label, value));
+        if (series.Count > MaxPoints) series.RemoveAt(0);
+    }
+
+    ApexChartOptions<ChartPoint> BuildLineOptions() => new()
+    {
+        Chart = new Chart
+        {
+            Background = "transparent",
+            Toolbar = new Toolbar { Show = false },
+            Zoom = new Zoom { Enabled = false }
+        },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = new List<double> { 2, 2, 2 } },
+        Markers = new Markers { Size = 0 },
+        Xaxis = new XAxis { TickAmount = 8 },
+        Yaxis = new List<YAxis> { new() { Min = 0 } },
+        Tooltip = new Tooltip { Theme = Mode.Dark }
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null) await _hub.DisposeAsync();
+    }
+}

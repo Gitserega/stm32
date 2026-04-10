@@ -4,16 +4,20 @@ using Diploma.Api.Hubs;
 using Diploma.Api.Models;
 using Diploma.Entity;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 
 namespace Diploma.Api.Services;
 
 public class MqttListenerService : BackgroundService
 {
-    private readonly IServiceScopeFactory      _scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHubContext<VibrationHub> _hub;
-    private readonly IConfiguration            _config;
+    private readonly IConfiguration _config;
     private readonly ILogger<MqttListenerService> _logger;
+
+    // DeviceId устройства STM32 — берётся из конфига или фиксированный
+    private long _deviceId;
 
     public MqttListenerService(
         IServiceScopeFactory scopeFactory,
@@ -22,14 +26,16 @@ public class MqttListenerService : BackgroundService
         ILogger<MqttListenerService> logger)
     {
         _scopeFactory = scopeFactory;
-        _hub          = hub;
-        _config       = config;
-        _logger       = logger;
+        _hub = hub;
+        _config = config;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        /* MQTTnet v5: MqttClientFactory вместо MqttFactory */
+        // Получаем или создаём устройство при старте
+        await EnsureDeviceAsync(stoppingToken);
+
         var factory = new MqttClientFactory();
         using var client = factory.CreateMqttClient();
 
@@ -50,7 +56,6 @@ public class MqttListenerService : BackgroundService
                 await client.ConnectAsync(options, stoppingToken);
                 _logger.LogInformation("MQTT connected to {Host}", _config["Mqtt:Host"]);
 
-                /* MQTTnet v5: подписка через MqttTopicFilter */
                 var topicFilter = new MqttTopicFilterBuilder()
                     .WithTopic("stm32/vibration")
                     .Build();
@@ -60,10 +65,7 @@ public class MqttListenerService : BackgroundService
 
                 await Task.Delay(Timeout.Infinite, stoppingToken);
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            catch (OperationCanceledException) { break; }
             catch (Exception ex)
             {
                 _logger.LogWarning("MQTT error: {Msg}. Retry in 5s...", ex.Message);
@@ -75,50 +77,91 @@ public class MqttListenerService : BackgroundService
             await client.DisconnectAsync();
     }
 
+    /// <summary>
+    /// Находит первое активное устройство в БД или создаёт дефолтное.
+    /// DeviceId сохраняется в поле _deviceId для использования при записи измерений.
+    /// </summary>
+    private async Task EnsureDeviceAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var device = await db.Devices.FirstOrDefaultAsync(d => d.IsActive, ct);
+        if (device is null)
+        {
+            device = new Device
+            {
+                Name = "STM32-Default",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            db.Devices.Add(device);
+            await db.SaveChangesAsync(ct);
+
+            // Создаём дефолтные пороги для нового устройства
+            db.Thresholds.AddRange(
+                new ThresholdConfig { DeviceId = device.Id, Metric = "crest", Value = 4.0, UpdatedAt = DateTime.UtcNow },
+                new ThresholdConfig { DeviceId = device.Id, Metric = "bearing", Value = 0.05, UpdatedAt = DateTime.UtcNow },
+                new ThresholdConfig { DeviceId = device.Id, Metric = "gear", Value = 0.05, UpdatedAt = DateTime.UtcNow }
+            );
+            await db.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Created default device with Id={Id}", device.Id);
+        }
+
+        _deviceId = device.Id;
+        _logger.LogInformation("Using DeviceId={Id}", _deviceId);
+    }
+
     private async Task OnMessageAsync(MqttApplicationMessageReceivedEventArgs e)
     {
-        _logger.LogInformation("RAW message received from topic: {Topic}", e.ApplicationMessage.Topic);
-
         var json = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-        _logger.LogInformation("Payload: {Json}", json);
+        _logger.LogInformation("MQTT payload: {Json}", json);
 
         MqttPayload? payload;
         try
         {
             payload = JsonSerializer.Deserialize<MqttPayload>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            _logger.LogInformation("Parsed OK: bl={Bl}, n={N}", payload?.bl, payload?.n);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Parse FAILED: {Err}", ex.Message);
+            _logger.LogWarning("Parse failed: {Err}", ex.Message);
             return;
         }
 
         if (payload is null) { _logger.LogWarning("Payload is null"); return; }
         if (payload.bl == 0) { _logger.LogInformation("bl=0, skipping"); return; }
 
-        _logger.LogInformation("Saving to DB...");
-
-        using var scope      = _scopeFactory.CreateScope();
-        var db               = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var alertService     = scope.ServiceProvider.GetRequiredService<AlertService>();
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var alertService = scope.ServiceProvider.GetRequiredService<AlertService>();
 
         var measurement = new Measurement
         {
-            ReceivedAt      = DateTime.UtcNow,
-            PacketNumber    = payload.n,
+            DeviceId = _deviceId,          // ← ИСПРАВЛЕНО: обязательное поле
+            ReceivedAt = DateTime.UtcNow,
+            PacketNumber = payload.n,
             DeviceTimestamp = payload.ts,
-            BaselineReady   = payload.bl == 1,
+            BaselineReady = payload.bl == 1,
 
-            Z_Rms   = payload.z.rms,   Z_Crest = payload.z.crest,
-            Z_Bear  = payload.z.bear,  Z_Gear  = payload.z.gear,  Z_Freq = payload.z.f,
+            Z_Rms = payload.z.rms,
+            Z_Crest = payload.z.crest,
+            Z_Bear = payload.z.bear,
+            Z_Gear = payload.z.gear,
+            Z_Freq = payload.z.f,
 
-            X_Rms   = payload.x.rms,   X_Crest = payload.x.crest,
-            X_Bear  = payload.x.bear,  X_Gear  = payload.x.gear,  X_Freq = payload.x.f,
+            X_Rms = payload.x.rms,
+            X_Crest = payload.x.crest,
+            X_Bear = payload.x.bear,
+            X_Gear = payload.x.gear,
+            X_Freq = payload.x.f,
 
-            Y_Rms   = payload.y.rms,   Y_Crest = payload.y.crest,
-            Y_Bear  = payload.y.bear,  Y_Gear  = payload.y.gear,  Y_Freq = payload.y.f,
+            Y_Rms = payload.y.rms,
+            Y_Crest = payload.y.crest,
+            Y_Bear = payload.y.bear,
+            Y_Gear = payload.y.gear,
+            Y_Freq = payload.y.f,
         };
 
         db.Measurements.Add(measurement);
@@ -129,18 +172,18 @@ public class MqttListenerService : BackgroundService
         var dto = new VibrationDto
         {
             MeasurementId = measurement.Id,
-            ReceivedAt    = measurement.ReceivedAt,
-            PacketNumber  = measurement.PacketNumber,
+            ReceivedAt = measurement.ReceivedAt,
+            PacketNumber = measurement.PacketNumber,
             BaselineReady = measurement.BaselineReady,
-            Z = new AxisDto { Rms=payload.z.rms, Crest=payload.z.crest, Bear=payload.z.bear, Gear=payload.z.gear, Freq=payload.z.f },
-            X = new AxisDto { Rms=payload.x.rms, Crest=payload.x.crest, Bear=payload.x.bear, Gear=payload.x.gear, Freq=payload.x.f },
-            Y = new AxisDto { Rms=payload.y.rms, Crest=payload.y.crest, Bear=payload.y.bear, Gear=payload.y.gear, Freq=payload.y.f },
+            Z = new AxisDto { Rms = payload.z.rms, Crest = payload.z.crest, Bear = payload.z.bear, Gear = payload.z.gear, Freq = payload.z.f },
+            X = new AxisDto { Rms = payload.x.rms, Crest = payload.x.crest, Bear = payload.x.bear, Gear = payload.x.gear, Freq = payload.x.f },
+            Y = new AxisDto { Rms = payload.y.rms, Crest = payload.y.crest, Bear = payload.y.bear, Gear = payload.y.gear, Freq = payload.y.f },
             Alerts = alerts.Select(a => new AlertDto
             {
-                Axis      = a.Axis.ToString(),
-                Metric    = a.Metric.ToString(),
-                Severity  = a.Severity.ToString(),
-                Value     = a.Value,
+                Axis = a.Axis.ToString(),
+                Metric = a.Metric.ToString(),
+                Severity = a.Severity.ToString(),
+                Value = a.Value,
                 Threshold = a.Threshold
             }).ToList()
         };

@@ -1,5 +1,7 @@
 using ApexCharts;
 using Diploma.Application.Components;
+using Diploma.Application.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor.Services;
 
@@ -14,6 +16,14 @@ builder.Services.AddScoped(sp => new HubConnectionBuilder()
     .Build());
 builder.Services.AddApexCharts();
 builder.Services.AddMudServices();
+builder.Services.AddHttpClient("AttendanceAPI", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5165/");
+});
+builder.Services.AddSingleton<IApiService, ApiService>();
+builder.Services.AddSingleton<AuthService>();
+builder.Services.AddMudBlazorDialog();
+builder.Services.AddMudBlazorSnackbar();
 var app = builder.Build();
 app.UseStaticFiles();
 // Configure the HTTP request pipeline.

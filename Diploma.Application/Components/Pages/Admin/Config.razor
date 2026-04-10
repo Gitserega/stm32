@@ -1,0 +1,156 @@
+﻿@page "/config"
+@using Diploma.Application.Services
+@using Diploma.DTO.Config
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@inject IApiService ApiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Admin")]
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h5" Class="mb-4">Управление устройствами и порогами</MudText>
+
+        @if (_isLoading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudTable Items="@_devices" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <ToolBarContent>
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateDevice">Создать устройство</MudButton>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadDevices" />
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Устройство</MudTh>
+                    <MudTh>RMS</MudTh>
+                    <MudTh>Crest</MudTh>
+                    <MudTh>Bearing</MudTh>
+                    <MudTh>Gear</MudTh>
+                    <MudTh>Действия</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.DeviceName</MudTd>
+                    <MudTd>@(context.Rms?.ToString() ?? "—")</MudTd>
+                    <MudTd>@(context.Crest?.ToString() ?? "—")</MudTd>
+                    <MudTd>@(context.Bearing?.ToString() ?? "—")</MudTd>
+                    <MudTd>@(context.Gear?.ToString() ?? "—")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="MudBlazor.Color.Info" OnClick="() => EditDevice(context)" />
+                        @* Можно добавить удаление, если нужно *@
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudAlert Severity="Severity.Info" Class="mt-4">
+                Изменения порогов вступают в силу немедленно и используются для генерации алертов.
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<DeviceThresholdDto> _devices = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDevices();
+    }
+
+    private async Task LoadDevices()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var devices = await ApiService.GetDevicesThresholdsAsync();
+            _devices = devices ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateDevice()
+    {
+        var dialog = await DialogService.ShowAsync<CreateDeviceDialog>("Новое устройство");
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not CreateDeviceRequest request) return;
+
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var success = await ApiService.CreateDeviceAsync(request);
+            if (success)
+            {
+                Snackbar.Add($"Устройство '{request.Name}' создано", Severity.Success);
+                await LoadDevices(); // обновить список
+            }
+            else
+            {
+                Snackbar.Add("Не удалось создать устройство", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task EditDevice(DeviceThresholdDto device)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(EditDeviceThresholdsDialog.DeviceId), device.DeviceId },
+            { nameof(EditDeviceThresholdsDialog.DeviceName), device.DeviceName },
+            { nameof(EditDeviceThresholdsDialog.CurrentRms), device.Rms },
+            { nameof(EditDeviceThresholdsDialog.CurrentCrest), device.Crest },
+            { nameof(EditDeviceThresholdsDialog.CurrentBearing), device.Bearing },
+            { nameof(EditDeviceThresholdsDialog.CurrentGear), device.Gear }
+        };
+        var dialog = await DialogService.ShowAsync<EditDeviceThresholdsDialog>($"Редактирование: {device.DeviceName}", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not UpdateThresholdsRequest request) return;
+
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var success = await ApiService.UpdateThresholdsAsync(request);
+            if (success)
+            {
+                Snackbar.Add("Пороги обновлены", Severity.Success);
+                await LoadDevices();
+            }
+            else
+            {
+                Snackbar.Add("Не удалось обновить пороги", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}
